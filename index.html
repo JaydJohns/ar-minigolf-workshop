@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Mini-Golf Course Creator</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #ui-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+
+        #ui-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .group-selector {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .group-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .group-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .group-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .asset-btn {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            border: 2px solid white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .asset-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .asset-btn.selected {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        #edit-controls {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            color: white;
+        }
+
+        #edit-controls.active {
+            display: block;
+        }
+
+        .control-group {
+            margin: 10px 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        input[type="range"] {
+            width: 200px;
+        }
+
+        .action-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .action-btn.view-ar {
+            background: #2196F3;
+        }
+
+        .action-btn.clear {
+            background: #ff9800;
+        }
+
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 250px;
+            font-size: 12px;
+        }
+
+        #ar-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 2000;
+        }
+
+        #ar-view.active {
+            display: block;
+        }
+
+        #close-ar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 3000;
+            font-size: 16px;
+        }
+
+        .emoji {
+            font-size: 20px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-panel">
+        <div id="ui-content">
+            <h1>⛳ AR Mini-Golf Course Creator</h1>
+            
+            <div class="group-selector">
+                <button class="group-btn active" onclick="switchGroup(1)">Group 1</button>
+                <button class="group-btn" onclick="switchGroup(2)">Group 2</button>
+                <button class="group-btn" onclick="switchGroup(3)">Group 3</button>
+                <button class="group-btn" onclick="switchGroup(4)">Group 4</button>
+            </div>
+
+            <div class="controls">
+                <button class="asset-btn" onclick="selectAsset('ramp')">📐 Straight Ramp</button>
+                <button class="asset-btn" onclick="selectAsset('curved-ramp')">🌙 Curved Ramp</button>
+                <button class="asset-btn" onclick="selectAsset('tunnel')">🚇 Tunnel</button>
+                <button class="asset-btn" onclick="selectAsset('wall')">🧱 Wall</button>
+                <button class="asset-btn" onclick="selectAsset('windmill')">🌀 Windmill</button>
+                <button class="asset-btn" onclick="selectAsset('obstacle')">⚙️ Moving Obstacle</button>
+                <button class="asset-btn" onclick="selectAsset('jump')">🎪 Jump</button>
+                <button class="asset-btn" onclick="selectAsset('water')">💧 Water Hazard</button>
+            </div>
+
+            <div class="controls" style="margin-top: 10px;">
+                <button class="action-btn view-ar" onclick="enterARMode()">👓 View in AR</button>
+                <button class="action-btn clear" onclick="clearCourse()">🗑️ Clear Course</button>
+                <button class="action-btn" onclick="deleteSelected()">❌ Delete Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-controls">
+        <div class="control-group">
+            <label>Size: <span id="scale-value">1.0</span></label>
+            <input type="range" id="scale-slider" min="0.5" max="3" step="0.1" value="1">
+        </div>
+        <div class="control-group">
+            <label>Rotation: <span id="rotation-value">0°</span></label>
+            <input type="range" id="rotation-slider" min="0" max="360" step="15" value="0">
+        </div>
+        <div class="control-group">
+            <label>Height: <span id="height-value">0.0</span></label>
+            <input type="range" id="height-slider" min="0" max="2" step="0.1" value="0">
+        </div>
+    </div>
+
+    <div id="info-panel">
+        <strong>🎮 Controls:</strong><br>
+        • Click asset button above<br>
+        • Click on green surface to place<br>
+        • Click object to select & edit<br>
+        • Use sliders to resize/rotate<br>
+        • View in AR to see in real space!
+    </div>
+
+    <div id="ar-view">
+        <button id="close-ar" onclick="exitARMode()">✕ Close AR</button>
+        <a-scene id="ar-scene" embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+            <a-entity id="ar-camera" camera></a-entity>
+        </a-scene>
+    </div>
+
+    <a-scene id="main-scene">
+        <a-sky color="#87CEEB"></a-sky>
+        
+        <!-- Lighting -->
+        <a-light type="ambient" color="#BBB"></a-light>
+        <a-light type="directional" color="#FFF" intensity="0.6" position="2 4 3"></a-light>
+
+        <!-- Golf Course Surface -->
+        <a-plane id="course-surface" position="0 0 0" rotation="-90 0 0" width="10" height="15" 
+                 color="#2E7D32" shadow="receive: true"
+                 class="clickable"></a-plane>
+
+        <!-- Start Position -->
+        <a-cylinder position="0 0.05 6" radius="0.3" height="0.1" color="#FF5722"></a-cylinder>
+        <a-text value="START" position="0 0.2 6" align="center" color="#FFF" width="3"></a-text>
+
+        <!-- Hole Position -->
+        <a-cylinder position="0 0.05 -6" radius="0.2" height="0.1" color="#000"></a-cylinder>
+        <a-text value="HOLE" position="0 0.2 -6" align="center" color="#FFF" width="3"></a-text>
+
+        <!-- Border Walls -->
+        <a-box position="5.5 0.25 0" width="0.5" height="0.5" depth="15" color="#8B4513"></a-box>
+        <a-box position="-5.5 0.25 0" width="0.5" height="0.5" depth="15" color="#8B4513"></a-box>
+        <a-box position="0 0.25 7.5" width="10" height="0.5" depth="0.5" color="#8B4513"></a-box>
+        <a-box position="0 0.25 -7.5" width="10" height="0.5" depth="0.5" color="#8B4513"></a-box>
+
+        <!-- Camera -->
+        <a-entity id="camera-rig">
+            <a-camera position="0 8 10" rotation="-35 0 0">
+                <a-cursor color="#4CAF50"></a-cursor>
+            </a-camera>
+        </a-entity>
+    </a-scene>
+
+    <script>
+        // Game state
+        let currentGroup = 1;
+        let selectedAsset = null;
+        let selectedObject = null;
+        let courses = {
+            1: [],
+            2: [],
+            3: [],
+            4: []
+        };
+
+        // Asset definitions with colors and properties
+        const assetTemplates = {
+            'ramp': {
+                geometry: 'box',
+                scale: '2 0.3 1',
+                rotation: '0 0 -15',
+                color: '#FFA726',
+                name: 'Ramp'
+            },
+            'curved-ramp': {
+                geometry: 'torus',
+                scale: '1.5 1.5 0.5',
+                rotation: '0 0 90',
+                color: '#FF7043',
+                radius: '1',
+                'radius-tubular': '0.3',
+                name: 'Curved Ramp'
+            },
+            'tunnel': {
+                geometry: 'cylinder',
+                scale: '2 1 2',
+                rotation: '0 0 90',
+                color: '#78909C',
+                name: 'Tunnel'
+            },
+            'wall': {
+                geometry: 'box',
+                scale: '0.2 0.5 2',
+                rotation: '0 0 0',
+                color: '#8D6E63',
+                name: 'Wall'
+            },
+            'windmill': {
+                geometry: 'box',
+                scale: '0.3 1.5 0.1',
+                rotation: '0 0 0',
+                color: '#E91E63',
+                animation: 'property: rotation; to: 0 360 0; loop: true; dur: 3000',
+                name: 'Windmill'
+            },
+            'obstacle': {
+                geometry: 'sphere',
+                scale: '0.8 0.8 0.8',
+                rotation: '0 0 0',
+                color: '#9C27B0',
+                animation: 'property: position; to: 2 0.5 0; dir: alternate; loop: true; dur: 2000',
+                name: 'Moving Obstacle'
+            },
+            'jump': {
+                geometry: 'box',
+                scale: '1.5 0.2 1',
+                rotation: '0 0 0',
+                color: '#FFEB3B',
+                name: 'Jump'
+            },
+            'water': {
+                geometry: 'plane',
+                scale: '2 2 1',
+                rotation: '-90 0 0',
+                color: '#2196F3',
+                opacity: '0.6',
+                name: 'Water Hazard'
+            }
+        };
+
+        // Initialize
+        const scene = document.querySelector('#main-scene');
+        const courseSurface = document.querySelector('#course-surface');
+
+        // Click on surface to place object
+        courseSurface.addEventListener('click', function(evt) {
+            if (selectedAsset && evt.detail.intersection) {
+                placeObject(evt.detail.intersection.point);
+            }
+        });
+
+        function selectAsset(assetType) {
+            selectedAsset = assetType;
+            
+            // Update button states
+            document.querySelectorAll('.asset-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+
+        function placeObject(position) {
+            const template = assetTemplates[selectedAsset];
+            const entity = document.createElement('a-entity');
+            
+            // Set geometry
+            if (template.geometry === 'torus') {
+                entity.setAttribute('geometry', {
+                    primitive: 'torus',
+                    radius: parseFloat(template.radius || 1),
+                    radiusTubular: parseFloat(template['radius-tubular'] || 0.3)
+                });
+            } else {
+                entity.setAttribute('geometry', {
+                    primitive: template.geometry
+                });
+            }
+
+            // Set position (slightly above surface)
+            entity.setAttribute('position', {
+                x: position.x,
+                y: 0.5,
+                z: position.z
+            });
+
+            // Set scale
+            entity.setAttribute('scale', template.scale);
+
+            // Set rotation
+            entity.setAttribute('rotation', template.rotation);
+
+            // Set material
+            entity.setAttribute('material', {
+                color: template.color,
+                opacity: template.opacity || 1
+            });
+
+            // Add shadow
+            entity.setAttribute('shadow', 'cast: true; receive: true');
+
+            // Add animation if specified
+            if (template.animation) {
+                entity.setAttribute('animation', template.animation);
+            }
+
+            // Make clickable
+            entity.classList.add('course-object');
+            entity.classList.add('clickable');
+            
+            // Store metadata
+            entity.dataset.assetType = selectedAsset;
+            entity.dataset.group = currentGroup;
+
+            // Click handler for selection
+            entity.addEventListener('click', function() {
+                selectObject(entity);
+            });
+
+            scene.appendChild(entity);
+            courses[currentGroup].push(entity);
+
+            console.log(`Placed ${template.name} for Group ${currentGroup}`);
+        }
+
+        function selectObject(obj) {
+            selectedObject = obj;
+            
+            // Show edit controls
+            document.getElementById('edit-controls').classList.add('active');
+
+            // Update sliders to current values
+            const scale = obj.getAttribute('scale');
+            const rotation = obj.getAttribute('rotation');
+            const position = obj.getAttribute('position');
+
+            const avgScale = (scale.x + scale.y + scale.z) / 3;
+            document.getElementById('scale-slider').value = avgScale;
+            document.getElementById('scale-value').textContent = avgScale.toFixed(1);
+
+            document.getElementById('rotation-slider').value = rotation.y;
+            document.getElementById('rotation-value').textContent = rotation.y + '°';
+
+            document.getElementById('height-slider').value = position.y;
+            document.getElementById('height-value').textContent = position.y.toFixed(1);
+
+            // Highlight selected object
+            document.querySelectorAll('.course-object').forEach(obj => {
+                obj.setAttribute('material', 'emissive', '#000');
+            });
+            obj.setAttribute('material', 'emissive', '#FFEB3B');
+        }
+
+        // Slider controls
+        document.getElementById('scale-slider').addEventListener('input', function() {
+            if (selectedObject) {
+                const scale = this.value;
+                selectedObject.setAttribute('scale', `${scale} ${scale} ${scale}`);
+                document.getElementById('scale-value').textContent = scale;
+            }
+        });
+
+        document.getElementById('rotation-slider').addEventListener('input', function() {
+            if (selectedObject) {
+                const rotation = this.value;
+                const currentRot = selectedObject.getAttribute('rotation');
+                selectedObject.setAttribute('rotation', `${currentRot.x} ${rotation} ${currentRot.z}`);
+                document.getElementById('rotation-value').textContent = rotation + '°';
+            }
+        });
+
+        document.getElementById('height-slider').addEventListener('input', function() {
+            if (selectedObject) {
+                const height = this.value;
+                const currentPos = selectedObject.getAttribute('position');
+                selectedObject.setAttribute('position', `${currentPos.x} ${height} ${currentPos.z}`);
+                document.getElementById('height-value').textContent = height;
+            }
+        });
+
+        function switchGroup(groupNum) {
+            // Save current group's state is already in courses object
+            
+            // Hide current group's objects
+            courses[currentGroup].forEach(obj => {
+                obj.setAttribute('visible', false);
+            });
+
+            // Update current group
+            currentGroup = groupNum;
+
+            // Show new group's objects
+            courses[currentGroup].forEach(obj => {
+                obj.setAttribute('visible', true);
+            });
+
+            // Update button states
+            document.querySelectorAll('.group-btn').forEach((btn, idx) => {
+                btn.classList.remove('active');
+                if (idx + 1 === groupNum) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Clear selection
+            selectedObject = null;
+            document.getElementById('edit-controls').classList.remove('active');
+
+            console.log(`Switched to Group ${groupNum}`);
+        }
+
+        function deleteSelected() {
+            if (selectedObject) {
+                const group = parseInt(selectedObject.dataset.group);
+                courses[group] = courses[group].filter(obj => obj !== selectedObject);
+                selectedObject.parentNode.removeChild(selectedObject);
+                selectedObject = null;
+                document.getElementById('edit-controls').classList.remove('active');
+            }
+        }
+
+        function clearCourse() {
+            if (confirm('Clear all objects for this group?')) {
+                courses[currentGroup].forEach(obj => {
+                    obj.parentNode.removeChild(obj);
+                });
+                courses[currentGroup] = [];
+                selectedObject = null;
+                document.getElementById('edit-controls').classList.remove('active');
+            }
+        }
+
+        function enterARMode() {
+            alert('AR Mode: Point your camera at a flat surface and your course will appear!\n\nNote: This requires a device with AR capabilities (ARCore/ARKit).');
+            
+            // Show AR view
+            document.getElementById('ar-view').classList.add('active');
+            
+            // Clone objects to AR scene
+            const arScene = document.querySelector('#ar-scene');
+            courses[currentGroup].forEach(obj => {
+                const clone = obj.cloneNode(true);
+                // Adjust position for AR (scale down)
+                const pos = obj.getAttribute('position');
+                clone.setAttribute('position', `${pos.x * 0.1} ${pos.y * 0.1} ${pos.z * 0.1 - 1}`);
+                const scale = obj.getAttribute('scale');
+                clone.setAttribute('scale', `${scale.x * 0.1} ${scale.y * 0.1} ${scale.z * 0.1}`);
+                arScene.appendChild(clone);
+            });
+        }
+
+        function exitARMode() {
+            document.getElementById('ar-view').classList.remove('active');
+            
+            // Clear AR scene
+            const arScene = document.querySelector('#ar-scene');
+            const objects = arScene.querySelectorAll('.course-object');
+            objects.forEach(obj => obj.parentNode.removeChild(obj));
+        }
+
+        // Deselect when clicking elsewhere
+        scene.addEventListener('click', function(evt) {
+            if (!evt.target.classList.contains('course-object') && 
+                evt.target !== courseSurface) {
+                selectedObject = null;
+                document.getElementById('edit-controls').classList.remove('active');
+                
+                // Remove all highlights
+                document.querySelectorAll('.course-object').forEach(obj => {
+                    obj.setAttribute('material', 'emissive', '#000');
+                });
+            }
+        });
+
+        console.log('AR Mini-Golf Course Creator loaded!');
+    </script>
+</body>
+</html>
